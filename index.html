@@ -3,13 +3,14 @@
 	<head>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<title>CS184 Final Project</title>
+		<title>Inkwell Project Proposal</title>
 		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 		<style>
 			body {
 				font-family: 'Inter', sans-serif;
 				background: #fff;
 				color: #111;
+				line-height: 1.5;
 			}
 
 			.container {
@@ -19,13 +20,223 @@
 
 			h1 {
 				text-align: center;
+				margin-bottom: 4px;
+			}
+
+			.subtitle {
+				text-align: center;
+				color: #555;
+			}
+
+			table {
+				width: 100%;
+				border-collapse: collapse;
+			}
+
+			th, td {
+				border: 1px solid #ccc;
+				padding: 6px 10px;
+				text-align: left;
+				vertical-align: top;
+			}
+
+			th {
+				background: #f3f3f3;
+			}
+
+			.todo {
+				background: #fff3a0;
 			}
 		</style>
 	</head>
 	<body>
 		<div class="container">
-		<h1>CS184/284A Fall 2026 Final Project</h1>
-		<div style="text-align: center;">Coming soon.</div>
+		<h1>Inkwell</h1>
+		<div class="subtitle">Real-Time Stylized Rendering with Temporally Coherent Strokes</div>
+		<div class="subtitle">CS184/284A Fall 2026 Final Project Proposal</div>
+
+		<br>
+
+		Team members: Kway Ler Koon, <span class="todo">[Teammate 2]</span>, <span class="todo">[Teammate 3]</span>,
+		<span class="todo">[Teammate 4]</span>
+		<br>
+		Link to webpage: <a href="https://klk645445.github.io/cs184-final/">klk645445.github.io/cs184-final</a>
+		<br>
+		Link to GitHub repository: <a href="https://github.com/klk645445/cs184-final">github.com/klk645445/cs184-final</a>
+
+		<h2>Summary</h2>
+		<p>
+		We will build a real-time non-photorealistic renderer that runs in the browser and can draw any 3D model in several
+		hand-made styles, including toon shading, ink outlines, hatching, halftone dots and watercolor. Beyond implementing the
+		styles, we will focus on temporal coherence, so that strokes and textures stay attached to the surface when the camera
+		or the object moves instead of sliding across it, and we will measure how well each method does this.
+		</p>
+
+		<h2>Problem Description</h2>
+		<p>
+		Everything we rendered in the homeworks aimed to be physically correct. Artists and illustrators often want the opposite,
+		an image that looks drawn or painted, because a few clean lines and flat tones can communicate shape more clearly than a
+		photorealistic render. This is used in games, animated films, technical illustration and architectural drawings.
+		Non-photorealistic rendering (NPR) generates these styles from 3D scenes automatically.
+		</p>
+		<p>
+		Single stylized frames are fairly easy to produce with image filters. The hard part is animation. Most simple stylization
+		methods work in screen space, so a hatching pattern or a grid of halftone dots stays fixed on the screen while the object
+		moves underneath it. This is called the shower-door effect, and it immediately breaks the illusion that the image was
+		drawn. The obvious fix, attaching the texture to the surface, has its own problem. As the object moves closer or further
+		away, the strokes grow and shrink, so their density and line width no longer match the look of a drawing. Lines have
+		similar issues, since edges detected per frame flicker as they appear and disappear. Balancing these two goals, strokes
+		that follow the surface but still look like they were drawn at a constant scale on paper, is the main challenge of this
+		project.
+		</p>
+		<p>
+		Our approach is to build all styles on top of a shared real-time pipeline in WebGL. A first pass renders a G-buffer with
+		depth, normals, lighting and texture coordinates, and each style is a combination of shading in that pass and image-space
+		post-processing. For temporal coherence, we will implement object-space tonal art maps for hatching, which blend between
+		stroke textures of different densities with mipmapping, and compare them against our screen-space versions on the same
+		camera paths.
+		</p>
+
+		<h2>Goals and Deliverables</h2>
+
+		<h3>What we plan to deliver</h3>
+		<p>
+		Our baseline is an interactive web demo where the user can load a model, orbit around it, move the light, and switch
+		between styles live. Each of us is responsible for one family of styles.
+		</p>
+		<ul>
+		<li><b>Toon shading.</b> Lighting quantized into a small number of bands, color ramps, rim lighting and stylized
+			specular highlights.</li>
+		<li><b>Lines.</b> Silhouette and crease lines, using both an inverted-hull outline and edge detection on the depth and
+			normal buffers, with adjustable width.</li>
+		<li><b>Texture-based tone.</b> Screen-space hatching, cross-hatching, halftone dots and stippling, where the density of
+			the pattern follows the lighting.</li>
+		<li><b>Painterly and poster styles.</b> Posterization to a fixed palette, a Kuwahara filter for a painted look, and a
+			basic watercolor effect with paper texture and darkened edges.</li>
+		</ul>
+		<p>
+		Any style can be combined with the line pass, so for example toon shading can be drawn with or without ink outlines.
+		We will deliver the demo, a set of still renders of each style on several models, and a short video of the styles on
+		moving scenes.
+		</p>
+
+		<h3>What we hope to deliver</h3>
+		<ul>
+		<li><b>Temporal coherence.</b> Object-space hatching with tonal art maps, and a comparison against the screen-space
+			version on the same camera paths. This is our first priority if we are ahead of schedule.</li>
+		<li><b>Watercolor.</b> A more complete watercolor model with pigment pooling at edges, color bleeding between regions and
+			wobbly, hand-drawn edges.</li>
+		<li><b>Suggestive contours.</b> Lines at places that are almost silhouettes, which show the inner shape of a model much
+			better than silhouettes alone, computed from the mesh curvature.</li>
+		<li><b>Style blending and a short film.</b> Smooth transitions between styles, assigning different styles to different
+			objects, and a short animated scene that shows them off.</li>
+		</ul>
+
+		<h3>How we will measure success</h3>
+		<ul>
+		<li><b>Performance.</b> Frame rate of each style at 1920×1080 on our laptops, for models from about 10,000 to
+			1,000,000 triangles. Our target is 60 frames per second for every baseline style on typical models.</li>
+		<li><b>Temporal coherence.</b> For a fixed camera path, the average pixel difference between consecutive frames in the
+			stroke regions, comparing screen-space and object-space versions of the same style. Lower flicker for the same
+			amount of motion means the strokes follow the surface better.</li>
+		<li><b>Visual quality.</b> Side-by-side comparisons with real hand-drawn and painted references of similar objects.</li>
+		</ul>
+
+		<h3>Questions we want to answer</h3>
+		<ul>
+		<li>Which stylization effects can run at interactive frame rates in a browser, and which ones are too expensive?</li>
+		<li>How much does object-space texturing reduce flicker compared to screen-space texturing, and what does it cost in
+			look and performance?</li>
+		<li>Which line detection method gives the cleanest lines across different kinds of models?</li>
+		</ul>
+
+		<h2>Schedule</h2>
+		<p>
+		The project starts when proposal feedback comes back on Friday, November 13, and the final deliverables are due on
+		Sunday, December 6.
+		</p>
+		<table>
+			<tr>
+				<th>Week</th>
+				<th>Tasks</th>
+			</tr>
+			<tr>
+				<td>Week 1<br>Nov 13 to Nov 19</td>
+				<td>
+					<ul>
+					<li>Set up the three.js project, model loading, camera controls and the G-buffer pass.</li>
+					<li>Each member builds a first version of their style family (bands for toon shading, depth and normal edge
+						detection for lines, screen-space hatching for tone, posterization for painterly).</li>
+					<li>Build the user interface for switching styles.</li>
+					</ul>
+				</td>
+			</tr>
+			<tr>
+				<td>Week 2<br>Nov 20 to Nov 26</td>
+				<td>
+					<ul>
+					<li>Finish the baseline styles (ramps and rim lights, inverted-hull outlines, halftone and stippling,
+						Kuwahara filter and basic watercolor).</li>
+					<li>Combine styles with the line pass.</li>
+					<li>Milestone due Sunday, November 22, with the webpage, slides and video showing the first styles.</li>
+					</ul>
+				</td>
+			</tr>
+			<tr>
+				<td>Week 3<br>Nov 27 to Dec 3</td>
+				<td>
+					<ul>
+					<li>Implement object-space hatching with tonal art maps.</li>
+					<li>Build the camera paths and measurement scripts, and collect frame rates and flicker numbers.</li>
+					<li>Start on the aspirational goals (watercolor, suggestive contours or style blending) depending on
+						progress.</li>
+					</ul>
+				</td>
+			</tr>
+			<tr>
+				<td>Week 4<br>Dec 4 to Dec 8</td>
+				<td>
+					<ul>
+					<li>Render the final images and the short film, and finish the comparisons.</li>
+					<li>Write the final report and record the video, due Sunday, December 6.</li>
+					<li>Prepare the presentation and demo for December 7 and 8.</li>
+					</ul>
+				</td>
+			</tr>
+		</table>
+
+		<h2>Resources</h2>
+
+		<h3>Computing platform, hardware and software</h3>
+		<ul>
+		<li>JavaScript with three.js and WebGL 2 and GLSL shaders, running in the browser.</li>
+		<li>Our own laptops, including Apple Silicon Macs, so that the demo runs anywhere without special hardware.</li>
+		<li>Test models from the Stanford 3D Scanning Repository and free glTF models, plus the meshes from the homeworks.</li>
+		</ul>
+
+		<h3>Starting point</h3>
+		<p>
+		We are starting from an empty three.js project and are not using any existing NPR code. three.js only provides model
+		loading, the camera and the WebGL setup, and all of the stylization shaders and post-processing passes are our own.
+		</p>
+
+		<h3>References</h3>
+		<ul>
+		<li>T. Saito and T. Takahashi. Comprehensible Rendering of 3-D Shapes. SIGGRAPH 1990.</li>
+		<li>A. Gooch, B. Gooch, P. Shirley and E. Cohen. A Non-Photorealistic Lighting Model for Automatic Technical
+			Illustration. SIGGRAPH 1998.</li>
+		<li>E. Praun, H. Hoppe, M. Webb and A. Finkelstein. Real-Time Hatching. SIGGRAPH 2001.</li>
+		<li>D. DeCarlo, A. Finkelstein, S. Rusinkiewicz and A. Santella. Suggestive Contours for Conveying Shape.
+			SIGGRAPH 2003.</li>
+		<li>C. Curtis, S. Anderson, J. Seims, K. Fleischer and D. Salesin. Computer-Generated Watercolor. SIGGRAPH 1997.</li>
+		<li>A. Bousseau, M. Kaplan, J. Thollot and F. Sillion. Interactive Watercolor Rendering with Temporal Coherence and
+			Abstraction. NPAR 2006.</li>
+		<li>J. E. Kyprianidis, H. Kang and J. Döllner. Image and Video Abstraction by Anisotropic Kuwahara Filtering.
+			Computer Graphics Forum, 2009.</li>
+		<li>P. Bénard, A. Bousseau and J. Thollot. State-of-the-Art Report on Temporal Coherence for Stylized Animations.
+			Computer Graphics Forum, 2011.</li>
+		<li>three.js documentation, <a href="https://threejs.org/docs/">threejs.org/docs</a>.</li>
+		</ul>
 		</div>
 	</body>
 </html>

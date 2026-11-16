@@ -1,0 +1,155 @@
+import * as THREE from 'three';
+import { mulberry32 } from '../core/textures.js';
+
+// Tonal art map (Track C), after Praun et al., "Real-Time Hatching", SIGGRAPH 2001.
+//
+// A tonal art map is a set of hatching textures: TONES tones (light to dark) at LEVELS resolutions
+// (mip levels, 256 x 256 down to 32 x 32 by default). Two rules make it work in real time:
+//
+//   nesting in tone:        every stroke in a tone also appears in all darker tones, so blending
+//                           between neighbouring tones never makes strokes pop in or out.
+//   nesting in resolution:  every stroke in a level also appears in all finer levels of the same
+//                           tone, drawn with the same width in pixels. When the object moves away
+//                           and the GPU switches to a coarser mip level, the strokes keep the same
+//                           width on screen instead of shrinking.
+//
+// images[tone][level] is a canvas of size (size >> level), white paper with black strokes.
+// build() packs the tones into two RGBA textures with these canvases as hand-made mipmaps:
+//   textures[0].r/g/b = tones 0/1/2, textures[1].r/g/b = tones 3/4/5.
+
+export const TONES = 6;
+
+export class TonalArtMap {
+	constructor({ size = 256, levels = 4, seed = 1 } = {}) {
+		this.size = size;
+		this.levels = levels;
+		this.seed = seed;
+		// Target fraction of ink for each tone, light to dark
+		this.targetDarkness = [0.08, 0.2, 0.33, 0.47, 0.62, 0.78];
+		this.images = [];
+		this.textures = [null, null];
+		this.clear();
+	}
+
+	// Resets every image to blank paper.
+	clear() {
+		this.images = [];
+		for (let t = 0; t < TONES; t++) {
+			const row = [];
+			for (let l = 0; l < this.levels; l++) {
+				const s = this.size >> l;
+				const canvas = document.createElement('canvas');
+				canvas.width = canvas.height = s;
+				const ctx = canvas.getContext('2d', { willReadFrequently: true });
+				ctx.fillStyle = '#fff';
+				ctx.fillRect(0, 0, s, s);
+				row.push(canvas);
+			}
+			this.images.push(row);
+		}
+	}
+
+	// Part C2: Fills this.images with hatching strokes, following the two nesting rules above.
+	generate() {
+		this.clear();
+		const rand = mulberry32(this.seed);
+
+		// TODO (Part C2): Build the tonal art map. A simplified version of Praun et al. Section 3:
+		//
+		//   for each tone t, from lightest (0) to darkest (TONES - 1):
+		//     start from a copy of every stroke already in tone t - 1 (nesting in tone)
+		//     for each level, from coarsest (levels - 1) to finest (0):
+		//       while darkness(images[t][level]) < targetDarkness[t]:
+		//         pick a random stroke (position, length, small random angle around the
+		//         hatching direction; cross-hatching direction for the darkest tones)
+		//         draw it into this level and every finer level of tones t ... TONES - 1
+		//         (nesting in resolution and tone)
+		//
+		// Keep a list of the strokes you add, so the copies are easy. Praun et al. also try
+		// several candidate strokes and keep the one that makes the texture the most even.
+		// Use drawStroke() to draw (it wraps around so the texture tiles) and darkness() to
+		// measure the current amount of ink. Use rand() instead of Math.random() so the map is
+		// the same on every run.
+	}
+
+	// Draws one stroke into a canvas, wrapping around the edges so the texture tiles.
+	//   u, v:     center of the stroke in [0, 1] texture coordinates
+	//   length:   in [0, 1] texture units
+	//   angle:    in radians
+	//   widthPx:  in pixels of this canvas (keep it the same for every level)
+	drawStroke(canvas, u, v, length, angle, widthPx = 1.5) {
+		const s = canvas.width;
+		const ctx = canvas.getContext('2d', { willReadFrequently: true });
+		const dx = (Math.cos(angle) * length * s) / 2;
+		const dy = (Math.sin(angle) * length * s) / 2;
+		ctx.strokeStyle = '#000';
+		ctx.lineWidth = widthPx;
+		ctx.lineCap = 'round';
+		for (const ox of [-s, 0, s]) {
+			for (const oy of [-s, 0, s]) {
+				const cx = u * s + ox;
+				const cy = v * s + oy;
+				ctx.beginPath();
+				ctx.moveTo(cx - dx, cy - dy);
+				ctx.lineTo(cx + dx, cy + dy);
+				ctx.stroke();
+			}
+		}
+	}
+
+	// Fraction of the canvas covered by ink, in [0, 1].
+	darkness(canvas) {
+		const s = canvas.width;
+		const data = canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, s, s).data;
+		let ink = 0;
+		for (let i = 0; i < data.length; i += 4) ink += 1 - data[i] / 255;
+		return ink / (s * s);
+	}
+
+	// Packs the images into two RGBA textures with hand-made mipmaps. Levels below the coarsest
+	// generated level are filled in by downsampling, because WebGL needs the full mip chain.
+	build() {
+		this.textures.forEach((t) => t?.dispose());
+		this.textures = [0, 1].map((pack) => {
+			const mips = [];
+			for (let l = 0; l < this.levels; l++) {
+				const s = this.size >> l;
+				const canvas = document.createElement('canvas');
+				canvas.width = canvas.height = s;
+				const ctx = canvas.getContext('2d');
+				const out = ctx.createImageData(s, s);
+				for (let c = 0; c < 3; c++) {
+					const src = this.images[pack * 3 + c][l].getContext('2d', { willReadFrequently: true }).getImageData(0, 0, s, s).data;
+					for (let i = 0; i < s * s; i++) out.data[i * 4 + c] = src[i * 4];
+				}
+				for (let i = 0; i < s * s; i++) out.data[i * 4 + 3] = 255;
+				ctx.putImageData(out, 0, 0);
+				mips.push(canvas);
+			}
+			let s = this.size >> (this.levels - 1);
+			while (s > 1) {
+				s >>= 1;
+				const canvas = document.createElement('canvas');
+				canvas.width = canvas.height = s;
+				const ctx = canvas.getContext('2d');
+				ctx.imageSmoothingQuality = 'high';
+				ctx.drawImage(mips[mips.length - 1], 0, 0, s, s);
+				mips.push(canvas);
+			}
+
+			const tex = new THREE.Texture(mips[0]);
+			tex.mipmaps = mips;
+			tex.generateMipmaps = false;
+			tex.flipY = false;
+			tex.wrapS = THREE.RepeatWrapping;
+			tex.wrapT = THREE.RepeatWrapping;
+			tex.minFilter = THREE.LinearMipmapLinearFilter;
+			tex.magFilter = THREE.LinearFilter;
+			tex.anisotropy = 8;
+			tex.colorSpace = THREE.NoColorSpace;
+			tex.needsUpdate = true;
+			return tex;
+		});
+		return this.textures;
+	}
+}
