@@ -44,9 +44,6 @@
 				background: #f3f3f3;
 			}
 
-			.todo {
-				background: #fff3a0;
-			}
 		</style>
 	</head>
 	<body>
@@ -57,8 +54,7 @@
 
 		<br>
 
-		Team members: Kway Ler Koon, <span class="todo">[Teammate 2]</span>, <span class="todo">[Teammate 3]</span>,
-		<span class="todo">[Teammate 4]</span>
+		Team members: Kway Ler Koon, Alex Siek Min Ping, Lena Mohammed Alabdulwahab, Rakesh Mehta
 		<br>
 		Link to webpage: <a href="https://klk645445.github.io/cs184-final/">klk645445.github.io/cs184-final</a>
 		<br>
@@ -91,7 +87,7 @@
 		</p>
 		<p>
 		Our approach is to build all styles on top of a shared real-time pipeline in WebGL. A first pass renders a G-buffer with
-		depth, normals, lighting and texture coordinates, and each style is a combination of shading in that pass and image-space
+		depth, normals, lighting, texture coordinates and screen-space motion vectors, and each style is a combination of shading in that pass and image-space
 		post-processing. For temporal coherence, we will implement object-space tonal art maps for hatching, which blend between
 		stroke textures of different densities with mipmapping, and compare them against our screen-space versions on the same
 		camera paths.
@@ -102,15 +98,21 @@
 		<h3>What we plan to deliver</h3>
 		<p>
 		Our baseline is an interactive web demo where the user can load a model, orbit around it, move the light, and switch
-		between styles live. Each of us is responsible for one family of styles.
+		between styles live, together with a measured comparison of screen-space and object-space hatching. Each of us is
+		responsible for one family of styles, and the member working on lines also owns the shared G-buffer pipeline, since the
+		line pass depends most on the depth and normal buffers.
 		</p>
 		<ul>
 		<li><b>Toon shading.</b> Lighting quantized into a small number of bands, color ramps, rim lighting and stylized
 			specular highlights.</li>
 		<li><b>Lines.</b> Silhouette and crease lines, using both an inverted-hull outline and edge detection on the depth and
 			normal buffers, with adjustable width.</li>
-		<li><b>Texture-based tone.</b> Screen-space hatching, cross-hatching, halftone dots and stippling, where the density of
-			the pattern follows the lighting.</li>
+		<li><b>Texture-based tone.</b> Screen-space hatching, cross-hatching and halftone dots, where the density of the
+			pattern follows the lighting.</li>
+		<li><b>Temporally coherent hatching.</b> Object-space hatching with tonal art maps, which blend between stroke textures
+			of different densities and use mipmapping so that strokes stay attached to the surface while keeping a roughly
+			constant size on screen. We will compare it against the screen-space version on the same camera paths using the
+			metrics below.</li>
 		<li><b>Painterly and poster styles.</b> Posterization to a fixed palette, a Kuwahara filter for a painted look, and a
 			basic watercolor effect with paper texture and darkened edges.</li>
 		</ul>
@@ -122,8 +124,8 @@
 
 		<h3>What we hope to deliver</h3>
 		<ul>
-		<li><b>Temporal coherence.</b> Object-space hatching with tonal art maps, and a comparison against the screen-space
-			version on the same camera paths. This is our first priority if we are ahead of schedule.</li>
+		<li><b>More object-space styles.</b> Stippling, and object-space versions of halftone and stippling using the same
+			approach as our hatching, measured in the same way. This is our first priority if we are ahead of schedule.</li>
 		<li><b>Watercolor.</b> A more complete watercolor model with pigment pooling at edges, color bleeding between regions and
 			wobbly, hand-drawn edges.</li>
 		<li><b>Suggestive contours.</b> Lines at places that are almost silhouettes, which show the inner shape of a model much
@@ -136,9 +138,16 @@
 		<ul>
 		<li><b>Performance.</b> Frame rate of each style at 1920×1080 on our laptops, for models from about 10,000 to
 			1,000,000 triangles. Our target is 60 frames per second for every baseline style on typical models.</li>
-		<li><b>Temporal coherence.</b> For a fixed camera path, the average pixel difference between consecutive frames in the
-			stroke regions, comparing screen-space and object-space versions of the same style. Lower flicker for the same
-			amount of motion means the strokes follow the surface better.</li>
+		<li><b>Temporal coherence.</b> For a fixed camera path, we warp each frame into the next using the motion vectors from
+			our G-buffer and measure the average pixel difference in the stroke regions between the warped frame and the actual
+			next frame, ignoring pixels that were hidden in the previous frame. Strokes that stay attached to the surface give a
+			low difference, while strokes that stay fixed on the screen give a high one. We compare the screen-space and
+			object-space versions of the same style this way. A plain difference between consecutive frames would not work,
+			because a pattern that stays fixed on the screen changes very little from frame to frame.</li>
+		<li><b>Stroke scale.</b> The average spacing between strokes in pixels as the camera moves towards and away from the
+			model, which should stay roughly constant for a drawn look.</li>
+		<li><b>Line stability.</b> The fraction of line pixels that appear or disappear between warped consecutive frames, for
+			each line detection method.</li>
 		<li><b>Visual quality.</b> Side-by-side comparisons with real hand-drawn and painted references of similar objects.</li>
 		</ul>
 
@@ -153,7 +162,8 @@
 		<h2>Schedule</h2>
 		<p>
 		The project starts when proposal feedback comes back on Friday, November 13, and the final deliverables are due on
-		Sunday, December 6.
+		Sunday, December 6. Homework 4 is due on November 27 and Exam 2 is in the week of November 30, so we start the
+		object-space hatching in week 1 and keep week 3 for measurement and polish rather than new features.
 		</p>
 		<table>
 			<tr>
@@ -164,9 +174,12 @@
 				<td>Week 1<br>Nov 13 to Nov 19</td>
 				<td>
 					<ul>
-					<li>Set up the three.js project, model loading, camera controls and the G-buffer pass.</li>
+					<li>Set up the three.js project, model loading, camera controls and the G-buffer pass, including motion
+						vectors.</li>
 					<li>Each member builds a first version of their style family (bands for toon shading, depth and normal edge
 						detection for lines, screen-space hatching for tone, posterization for painterly).</li>
+					<li>Create the tonal art map stroke textures at several densities and mipmap levels, and start the
+						object-space hatching shader.</li>
 					<li>Build the user interface for switching styles.</li>
 					</ul>
 				</td>
@@ -175,10 +188,12 @@
 				<td>Week 2<br>Nov 20 to Nov 26</td>
 				<td>
 					<ul>
-					<li>Finish the baseline styles (ramps and rim lights, inverted-hull outlines, halftone and stippling,
-						Kuwahara filter and basic watercolor).</li>
+					<li>Finish the baseline styles (ramps and rim lights, inverted-hull outlines, halftone, Kuwahara filter and
+						basic watercolor).</li>
+					<li>Get object-space hatching working on our test models.</li>
 					<li>Combine styles with the line pass.</li>
-					<li>Milestone due Sunday, November 22, with the webpage, slides and video showing the first styles.</li>
+					<li>Milestone due Sunday, November 22, with the webpage, slides and video showing the first styles and
+						early object-space hatching.</li>
 					</ul>
 				</td>
 			</tr>
@@ -186,10 +201,11 @@
 				<td>Week 3<br>Nov 27 to Dec 3</td>
 				<td>
 					<ul>
-					<li>Implement object-space hatching with tonal art maps.</li>
-					<li>Build the camera paths and measurement scripts, and collect frame rates and flicker numbers.</li>
-					<li>Start on the aspirational goals (watercolor, suggestive contours or style blending) depending on
-						progress.</li>
+					<li>Build the camera paths and measurement scripts, and collect frame rates, coherence, stroke scale and
+						line stability numbers.</li>
+					<li>Fix problems found by the measurements and polish the baseline styles.</li>
+					<li>Start on the aspirational goals depending on progress, keeping in mind Homework 4 and Exam 2 this
+						week.</li>
 					</ul>
 				</td>
 			</tr>
@@ -217,7 +233,9 @@
 		<h3>Starting point</h3>
 		<p>
 		We are starting from an empty three.js project and are not using any existing NPR code. three.js only provides model
-		loading, the camera and the WebGL setup, and all of the stylization shaders and post-processing passes are our own.
+		loading, the camera and the WebGL setup, and all of the stylization shaders and post-processing passes are our own. We write every style with ShaderMaterial or RawShaderMaterial and do not use the stylization
+		features that three.js already includes, such as MeshToonMaterial, OutlineEffect, OutlinePass, HalftonePass or
+		SobelOperatorShader. If we use EffectComposer, it is only to chain our own passes.
 		</p>
 
 		<h3>References</h3>
