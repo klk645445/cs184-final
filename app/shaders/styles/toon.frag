@@ -34,7 +34,23 @@ vec3 toonColor(Surface s, float d) {
 	// TODO (Part B2): When uUseRamp is on, look the color up in tRamp using d (and the ambient term)
 	// instead of multiplying the albedo by the light. Think about where to sample inside each band
 	// so that every band gets one flat color from the ramp.
-	return s.albedo * (uAmbient + uLightIntensity * d);
+	// Calculate the lighting intensity
+    float brightness = clamp(uAmbient + uLightIntensity * d, 0.0, 1.0);
+
+    // use the object's original color if the color ramp is disabled
+    if (!uUseRamp) {
+        return s.albedo * (uAmbient + uLightIntensity * d);
+    }
+
+    // find which lighting band this pixel belongs to
+    float bands = max(uBands, 1.0);
+    float bandIndex = min(floor(brightness * bands), bands - 1.0);
+
+    // sample at the center of the band
+    float rampPosition = (bandIndex + 0.5) / bands;
+
+    // get the corresponding color from the ramp texture
+    return texture(tRamp, vec2(rampPosition, 0.5)).rgb;
 }
 
 // Part B3: Rim light, a bright band along the silhouette where the surface turns away from the
