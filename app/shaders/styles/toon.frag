@@ -17,7 +17,9 @@ uniform float uSpecSize;      // threshold on the specular term, smaller = bigge
 float toonDiffuse(Surface s) {
 	// TODO (Part B1): Quantize the diffuse term into uBands levels, so that the shading changes in
 	// hard steps instead of smoothly.
-	return max(s.NdotL, 0.0);
+	float diffuse = max(s.NdotL, 0.0);
+    float bands = max(uBands, 1.0);
+    return floor(diffuse * bands) / max(bands - 1.0, 1.0);
 }
 
 // Part B2: Turns the quantized diffuse amount d into a color.
