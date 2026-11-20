@@ -296,10 +296,10 @@ Parts are numbered in the order to do them. Every part has a way to see that it 
 
 | Track | Focus | Owner | Styles / features | Metric | Main files |
 |---|---|---|---|---|---|
-| **A** | Lines & pipeline | _______ | motion vectors, depth / normal edges, inverted hull | warp + line stability | `pipeline/gbuffer.*`, `lines/*`, `metrics/warp.js`, `metrics/lineStability.js` |
-| **B** | Toon & halftone | _______ | toon (bands, ramp, rim, specular), halftone dots | stroke scale | `styles/toon.frag`, `styles/halftone.frag`, `metrics/strokeScale.js` |
-| **C** | Hatching | _______ | screen-space hatching, tonal art map, object-space hatching | temporal coherence | `styles/hatch_*.frag`, `tam/TonalArtMap.js`, `metrics/coherence.js` |
-| **D** | Painterly | _______ | posterize, Kuwahara, watercolor | performance | `styles/posterize.frag`, `styles/kuwahara.frag`, `styles/watercolor.frag`, `metrics/performance.js` |
+| **A** | Lines & pipeline | Rakesh | motion vectors, depth / normal edges, inverted hull | warp + line stability | `pipeline/gbuffer.*`, `lines/*`, `metrics/warp.js`, `metrics/lineStability.js` |
+| **B** | Toon & halftone | Lena | toon (bands, ramp, rim, specular), halftone dots | stroke scale | `styles/toon.frag`, `styles/halftone.frag`, `metrics/strokeScale.js` |
+| **C** | Hatching | Ler Koon | screen-space hatching, tonal art map, object-space hatching | temporal coherence | `styles/hatch_*.frag`, `tam/TonalArtMap.js`, `metrics/coherence.js` |
+| **D** | Painterly | Alex | posterize, Kuwahara, watercolor | performance | `styles/posterize.frag`, `styles/kuwahara.frag`, `styles/watercolor.frag`, `metrics/performance.js` |
 
 ### Track A: Lines and pipeline
 
