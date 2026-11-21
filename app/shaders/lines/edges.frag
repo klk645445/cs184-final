@@ -38,10 +38,32 @@ float depthEdge(vec2 uv) {
 
 // Part A3: Crease lines from discontinuities in the normal. Returns line coverage in [0, 1].
 float normalEdge(vec2 uv) {
-	// TODO (Part A3): Same structure as depthEdge, but measure how much the normal changes between
-	// neighbours (1 - dot(n1, n2)) and compare against uNormalThreshold. Optionally also draw a
-	// line where the object id changes, which separates touching objects.
-	return 0.0;
+	// A3: Compare directions across the same diagonal footprint as the depth pass.
+	vec2 offset = 0.5 * max(uLineWidth, 1.0) * uTexel;
+	vec2 uv00 = uv + vec2(-offset.x, -offset.y);
+	vec2 uv10 = uv + vec2( offset.x, -offset.y);
+	vec2 uv01 = uv + vec2(-offset.x,  offset.y);
+	vec2 uv11 = uv + vec2( offset.x,  offset.y);
+	vec4 n00 = texture(tNormal, uv00);
+	vec4 n10 = texture(tNormal, uv10);
+	vec4 n01 = texture(tNormal, uv01);
+	vec4 n11 = texture(tNormal, uv11);
+	float center = getDepth(uv);
+	float nearest = min(center, min(min(n00.w, n10.w), min(n01.w, n11.w)));
+	float farthest = max(center, max(max(n00.w, n10.w), max(n01.w, n11.w)));
+	float coverage = min(uLineWidth, 1.0);
+	if (farthest <= 0.0) return 0.0;
+	// Never normalize the cleared background's zero normal.
+	if (nearest <= 0.0) return coverage;
+	float change = max(
+		1.0 - dot(normalize(n00.xyz), normalize(n11.xyz)),
+		1.0 - dot(normalize(n10.xyz), normalize(n01.xyz))
+	);
+	// Coplanar touching objects can share both depth and normal, but not their IDs.
+	float objectId = getObjectId(uv);
+	bool objectEdge = getObjectId(uv00) != objectId || getObjectId(uv10) != objectId
+		|| getObjectId(uv01) != objectId || getObjectId(uv11) != objectId;
+	return coverage * max(step(uNormalThreshold, change), objectEdge ? 1.0 : 0.0);
 }
 
 void main() {

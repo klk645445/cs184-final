@@ -48,10 +48,10 @@
 **Files:** modify `app/shaders/lines/edges.frag`; add `tests/a3-normal.js`; extend suite registration.
 **Interfaces:** view normals from `tNormal.xyz`, foreground object IDs from `tAlbedo.a`, existing normal threshold -> line coverage; preserve A2 and hull composition.
 
-- [ ] Add tests: equal normals -> 0; 90-degree change -> ink; parallel non-unit normals -> 0; foreground object-ID change -> ink; background/silhouettes valid; thresholds and widths work; disabled mode -> 0; combined modes take maximum and hull mask remains respected.
-- [ ] Run `node tests/run-webgl.mjs a3`; expect crease/object-boundary tests to fail.
-- [ ] Implement normalized normal comparisons and object-boundary detection with background guards.
-- [ ] Run the full suite and real app smoke checks on Bunny and Still life, including camera motion/turntable, width/threshold controls, and shader errors. Commit A3, push, and read back remote SHA.
+- [x] Add tests: equal normals -> 0; 90-degree change -> ink; parallel non-unit normals -> 0; foreground object-ID change -> ink; background/silhouettes valid; thresholds and widths work; disabled mode -> 0; combined modes take maximum and hull mask remains respected.
+- [x] Run `node tests/run-webgl.mjs a3`; expect crease/object-boundary tests to fail.
+- [x] Implement normalized normal comparisons and object-boundary detection with background guards.
+- [x] Run the full suite and real app smoke checks on Bunny and Still life, including camera motion/turntable, width/threshold controls, and shader errors. Commit A3, push, and read back remote SHA.
 
 ## Final review and handoff
 

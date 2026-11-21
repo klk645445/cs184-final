@@ -34,13 +34,17 @@ try {
 	const base = `http://127.0.0.1:${server.address().port}`;
 	const response = await page.goto(`${base}/tests/webgl.html?suite=${encodeURIComponent(process.argv[2] || 'all')}`);
 	if (!response.ok()) throw new Error(`Test page HTTP ${response.status()}`);
-	await page.waitForFunction(() => window.testResults, { timeout: 60000 });
+	await page.waitForFunction(() => window.testResults, null, { timeout: 60000 });
 	const results = await page.evaluate(() => window.testResults);
 	for (const result of results) console.log(`${result.ok ? 'PASS' : 'FAIL'} ${result.name}${result.error ? `: ${result.error}` : ''}`);
 	const failed = results.filter((result) => !result.ok).length + pageErrors.length;
 	for (const error of pageErrors) console.error(error);
 	console.log(`${results.length - results.filter((result) => !result.ok).length}/${results.length} shader checks passed`);
 	if (failed || !results.length) process.exitCode = 1;
+	if (!process.exitCode && process.env.APP_SMOKE === '1') {
+		const { runAppSmoke } = await import('./app-smoke.mjs');
+		await runAppSmoke(browser, base, process.env.TEST_ARTIFACT_DIR);
+	}
 } catch (error) {
 	console.error(error.stack || error);
 	process.exitCode = 1;
