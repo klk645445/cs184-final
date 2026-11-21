@@ -58,7 +58,13 @@ vec3 toonColor(Surface s, float d) {
 float rimTerm(Surface s) {
 	// TODO (Part B3): Use N.V, which goes to 0 at the silhouette. Make the rim a hard-edged band of
 	// width uRimWidth, and optionally only on the lit side.
-	return 0.0;
+	float rim = 1.0 - s.NdotV;
+
+    float rimMask = step(1.0 - uRimWidth, rim);
+
+    float lightMask = step(0.0, s.NdotL);
+
+    return rimMask * lightMask;
 }
 
 // Part B4: Stylized specular highlight, a flat, hard-edged blob instead of a smooth falloff.
