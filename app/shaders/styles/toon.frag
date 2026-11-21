@@ -15,8 +15,6 @@ uniform float uSpecSize;      // threshold on the specular term, smaller = bigge
 
 // Part B1: Returns the diffuse light amount max(N.L, 0), quantized into uBands flat bands.
 float toonDiffuse(Surface s) {
-	// TODO (Part B1): Quantize the diffuse term into uBands levels, so that the shading changes in
-	// hard steps instead of smoothly.
 	float diffuse = clamp(s.NdotL, 0.0, 1.0);
     float bands = max(uBands, 1.0);
 
@@ -31,9 +29,6 @@ float toonDiffuse(Surface s) {
 
 // Part B2: Turns the quantized diffuse amount d into a color.
 vec3 toonColor(Surface s, float d) {
-	// TODO (Part B2): When uUseRamp is on, look the color up in tRamp using d (and the ambient term)
-	// instead of multiplying the albedo by the light. Think about where to sample inside each band
-	// so that every band gets one flat color from the ramp.
 	// Calculate the lighting intensity
     float brightness = clamp(uAmbient + uLightIntensity * d, 0.0, 1.0);
 
@@ -56,8 +51,6 @@ vec3 toonColor(Surface s, float d) {
 // Part B3: Rim light, a bright band along the silhouette where the surface turns away from the
 // camera. Returns its strength in [0, 1].
 float rimTerm(Surface s) {
-	// TODO (Part B3): Use N.V, which goes to 0 at the silhouette. Make the rim a hard-edged band of
-	// width uRimWidth, and optionally only on the lit side.
 	float rim = 1.0 - s.NdotV;
 
     float rimMask = step(1.0 - uRimWidth, rim);
@@ -70,9 +63,13 @@ float rimTerm(Surface s) {
 // Part B4: Stylized specular highlight, a flat, hard-edged blob instead of a smooth falloff.
 // Returns its strength in [0, 1].
 float toonSpecular(Surface s) {
-	// TODO (Part B4): Start from the Blinn-Phong term pow(N.H, uShininess) and threshold it with
-	// uSpecSize. Use a small smoothstep instead of step if the edge aliases.
-	return 0.0;
+	float specular = pow(max(s.NdotH, 0.0), uShininess);
+	
+    float highlight = step(uSpecSize, specular);
+
+    float lightMask = step(0.0, s.NdotL);
+
+    return highlight * lightMask;
 }
 
 void main() {
