@@ -18,7 +18,6 @@ void main() {
 	gl_Position = projectionMatrix * viewPos;
 	vCurClip = gl_Position;
 
-	// TODO (Part A1): Compute where this vertex was in clip space in the previous frame, using the
-	// previous model matrix and the previous view-projection matrix.
-	vPrevClip = gl_Position;
+	// A1: Follow the same surface point through the previous model and camera transforms.
+	vPrevClip = uPrevViewProjection * uPrevModelMatrix * vec4(position, 1.0);
 }
