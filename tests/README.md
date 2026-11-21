@@ -2,6 +2,8 @@
 
 These tests compile the actual production GLSL in WebGL2 and assert float pixel readback against hand-derived fixtures. They do not substitute JavaScript versions of the algorithms.
 
+Fixtures include the production half-float attachment format for extreme motion, and odd-sized targets with multiple edge positions for thin-line sampling regressions.
+
 Run with Node.js, an installed Playwright package, and Chrome:
 
 ```sh

@@ -39,7 +39,9 @@ void main() {
 	if (vCurClip.w > 0.000001 && vPrevClip.w > 0.000001) {
 		vec2 currentNdc = vCurClip.xy / vCurClip.w;
 		vec2 previousNdc = vPrevClip.xy / vPrevClip.w;
-		motion = 0.5 * (currentNdc - previousNdc);
+		vec2 displacement = 0.5 * (currentNdc - previousNdc);
+		// The G-buffer is half float: reject unusable history instead of storing Inf/NaN.
+		if (all(lessThanEqual(abs(displacement), vec2(65504.0)))) motion = displacement;
 	}
 
 	gMotion = vec4(motion, vUv);

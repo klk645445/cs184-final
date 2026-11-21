@@ -4,6 +4,13 @@ const flat = () => ({ depth: 2 });
 const step = (x) => ({ depth: x < 16 ? 2 : 2.2 });
 
 export const tests = [
+	['A2 thin edges have a stable one-pixel stencil on odd viewport sizes', async () => {
+		for (const width of [0.5, 1]) for (const boundary of [12, 6, 7]) for (const horizontal of [false, true]) {
+			const image = await renderEdges((x, y) => ({ depth: (horizontal ? y : x) < boundary ? 2 : 2.2 }), { width, size: 37 });
+			near(image.count, 37);
+			near(horizontal ? image.at(18, boundary - 1) : image.at(boundary - 1, 18), Math.min(width, 1));
+		}
+	}],
 	['A2 flat foreground has no depth edges, including texture borders', async () => {
 		near((await renderEdges(flat)).count, 0);
 	}],

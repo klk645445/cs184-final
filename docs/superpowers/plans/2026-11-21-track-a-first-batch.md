@@ -56,3 +56,5 @@
 ## Final review and handoff
 
 Review the whole diff against `fe6f171`, using a fresh reviewer, then fix significant findings with regression tests. Verify full-suite output, clean git status, remote head equality, and untouched B/C/D/shared JavaScript. Record exactly which app checks were executed. A4–A6 and the milestone report/video/slides remain outside this batch.
+
+Completed November 21: a fresh review reproduced odd-size thin-line sampling ambiguity and motion overflow in the production half-float G-buffer. Both were reproduced locally with failing tests and fixed. Final verification: 37/37 shader checks and 15/15 real-app checks. One minor test-strengthening suggestion remains: the real-app threshold sweep allows equal counts at both extremes; synthetic tests independently require threshold sensitivity on known fixtures.

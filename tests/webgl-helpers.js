@@ -1,5 +1,4 @@
 // Test fixtures render the production GLSL; expected answers live in the test cases.
-const size = 32;
 const gl = document.createElement('canvas').getContext('webgl2', { antialias: false });
 if (!gl || !gl.getExtension('EXT_color_buffer_float')) throw new Error('WebGL2 float render targets are required');
 
@@ -68,7 +67,7 @@ gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
 	-1,  3, 0, 0, 0, 1, 0, 2,
 ]), gl.STATIC_DRAW);
 
-function use(result) {
+function use(result, size = 32) {
 	gl.useProgram(result);
 	gl.bindVertexArray(vao);
 	gl.bindBuffer(gl.ARRAY_BUFFER, vertices);
@@ -81,22 +80,22 @@ function use(result) {
 	gl.viewport(0, 0, size, size);
 	gl.disable(gl.DEPTH_TEST);
 }
-function texture(data) {
+function texture(data, size = 32, halfFloat = false) {
 	const result = gl.createTexture();
 	gl.bindTexture(gl.TEXTURE_2D, result);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, size, size, 0, gl.RGBA, gl.FLOAT, data);
+	gl.texImage2D(gl.TEXTURE_2D, 0, halfFloat ? gl.RGBA16F : gl.RGBA32F, size, size, 0, gl.RGBA, gl.FLOAT, data);
 	return result;
 }
-function target(count) {
+function target(count, size = 32, halfFloat = false) {
 	const framebuffer = gl.createFramebuffer();
 	gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
 	const textures = [];
 	for (let i = 0; i < count; i++) {
-		textures.push(texture(null));
+		textures.push(texture(null, size, halfFloat));
 		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + i, gl.TEXTURE_2D, textures[i], 0);
 	}
 	gl.drawBuffers(textures.map((_, index) => gl.COLOR_ATTACHMENT0 + index));
@@ -108,10 +107,10 @@ function checkedDraw() {
 	assert(gl.getError() === gl.NO_ERROR, 'WebGL error during draw');
 }
 
-export async function renderMotion({ previousModel = identity(), previousViewProjection = translation(0, 0, -0.25), projection = identity() } = {}) {
+export async function renderMotion({ previousModel = identity(), previousViewProjection = translation(0, 0, -0.25), projection = identity(), halfFloat = false } = {}) {
 	const p = await program('pipeline/gbuffer.vert', 'pipeline/gbuffer.frag');
 	use(p);
-	const output = target(4);
+	const output = target(4, 32, halfFloat);
 	const mat = (name, value) => gl.uniformMatrix4fv(gl.getUniformLocation(p, name), false, value);
 	mat('modelViewMatrix', translation(0, 0, -0.25));
 	mat('projectionMatrix', projection);
@@ -136,10 +135,10 @@ export async function renderMotion({ previousModel = identity(), previousViewPro
 
 // Field fixtures return { depth, normal, id } at integer pixel coordinates.
 export async function renderEdges(field, { width = 2, depth = true, normal = false, hull = 0,
-	depthThreshold = 0.02, normalThreshold = 0.3 } = {}) {
+	depthThreshold = 0.02, normalThreshold = 0.3, size = 32 } = {}) {
 	const p = await program('pipeline/fullscreen.vert', 'lines/edges.frag');
-	use(p);
-	const output = target(1);
+	use(p, size);
+	const output = target(1, size);
 	const normals = new Float32Array(size * size * 4);
 	const albedo = new Float32Array(size * size * 4);
 	const hullMask = new Float32Array(size * size * 4);
@@ -153,7 +152,7 @@ export async function renderEdges(field, { width = 2, depth = true, normal = fal
 	const inputs = [];
 	for (const [unit, name, data] of [[0, 'tNormal', normals], [1, 'tAlbedo', albedo], [2, 'tHull', hullMask]]) {
 		gl.activeTexture(gl.TEXTURE0 + unit);
-		inputs.push(texture(data));
+		inputs.push(texture(data, size));
 		gl.uniform1i(gl.getUniformLocation(p, name), unit);
 	}
 	gl.uniform2f(gl.getUniformLocation(p, 'uTexel'), 1 / size, 1 / size);

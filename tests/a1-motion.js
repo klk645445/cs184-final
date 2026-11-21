@@ -3,6 +3,17 @@ import { renderMotion, identity, translation, near } from './webgl-helpers.js';
 function checkMotion(pixel, x, y) { near(pixel[0], x); near(pixel[1], y); }
 
 export const tests = [
+	['A1 rejects motion that overflows the production half-float target', async () => {
+		const previousViewProjection = translation(1, 0, -0.25);
+		previousViewProjection[15] = 0.000002;
+		checkMotion((await renderMotion({ previousViewProjection, halfFloat: true }))[3], 0, 0);
+	}],
+	['A1 preserves large representable motion at production half-float precision', async () => {
+		const previousViewProjection = translation(1, 0, -0.25);
+		previousViewProjection[15] = 0.0001;
+		// Half-float rounding of half*(1/32 - 1.03125/0.0001) and half*(1/32 - 0.03125/0.0001).
+		checkMotion((await renderMotion({ previousViewProjection, halfFloat: true }))[3], -5156, -156.25);
+	}],
 	['A1 stationary geometry has zero motion', async () => {
 		checkMotion((await renderMotion())[3], 0, 0);
 	}],

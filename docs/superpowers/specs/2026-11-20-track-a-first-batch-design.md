@@ -21,6 +21,8 @@ Roberts cross is the approved first-batch approach. Both choices are explicitly 
 2. **A2 — `app/shaders/lines/edges.frag`, `depthEdge()`:** sample neighboring depths at `uLineWidth / 2` pixel offsets. Detect foreground/background boundaries explicitly, keep all-background regions empty, and normalize foreground depth changes by center depth before applying `uDepthThreshold`. Return line coverage in `[0, 1]`.
 3. **A3 — the same file, `normalEdge()`:** compare normalized neighboring normals using `1 - dot(n1, n2)` and `uNormalThreshold`. Handle background before normalization. Include boundaries between distinct foreground object IDs so touching objects separate. Reuse existing line-mode switches and controls.
 
+Review refinements: quantize corner sample offsets to integer texels and clamp them to the texture bounds before `texelFetch`, so half-texel ties cannot make thin lines disappear at odd viewport sizes. Reject motion outside the half-float representable range (maximum absolute component 65504) before storing in the existing G-buffer; preserve large motion that remains representable.
+
 ## Acceptance checks
 
 Use executable WebGL checks against the actual shader files, with synthetic geometry/textures and pixel readback, rather than a separate JavaScript copy of the formulas. Verify the placeholder fails the relevant checks before implementation.

@@ -4,6 +4,19 @@ const normalOnly = { depth: false, normal: true };
 const crease = (x) => ({ depth: 2, normal: x < 16 ? [0, 0, 1] : [1, 0, 0] });
 
 export const tests = [
+	['A3 thin creases have a stable one-pixel stencil on odd viewport sizes', async () => {
+		for (const width of [0.5, 1]) for (const boundary of [12, 6, 7]) for (const horizontal of [false, true]) {
+			const image = await renderEdges((x, y) => ({ depth: 2, normal: (horizontal ? y : x) < boundary ? [0, 0, 1] : [1, 0, 0] }), { ...normalOnly, width, size: 37 });
+			near(image.count, 37);
+			near(horizontal ? image.at(18, boundary - 1) : image.at(boundary - 1, 18), Math.min(width, 1));
+		}
+	}],
+	['A3 object boundaries use the same odd-size thin-line stencil', async () => {
+		for (const width of [0.5, 1]) for (const boundary of [12, 6, 7]) {
+			const image = await renderEdges((x) => ({ depth: 2, id: x < boundary ? 1 : 2 }), { ...normalOnly, width, size: 37 });
+			near(image.count, 37); near(image.at(boundary - 1, 18), Math.min(width, 1));
+		}
+	}],
 	['A3 equal normals on one object stay clear, including image borders', async () => {
 		near((await renderEdges(() => ({ depth: 2 }), normalOnly)).count, 0);
 	}],
