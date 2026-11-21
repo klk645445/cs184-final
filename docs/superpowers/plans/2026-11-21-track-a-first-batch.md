@@ -38,10 +38,10 @@
 **Files:** modify `app/shaders/lines/edges.frag`; add `tests/a2-depth.js`; extend suite registration.
 **Interfaces:** depth in `tNormal.w`, `uTexel`, width, existing depth threshold -> line coverage in `[0,1]`; do not alter `normalEdge()` yet.
 
-- [ ] Add tests: flat/background -> 0; silhouettes/depth step -> ink; a 10x depth scaling preserves masks; increased threshold suppresses a small jump; wider width expands the edge footprint; a 0.5px width still gives nonzero coverage; uniform-depth image borders remain empty.
-- [ ] Run `node tests/run-webgl.mjs a2`; expect boundary tests to fail against the placeholder.
-- [ ] Implement Roberts-cross relative-depth detection with explicit foreground/background handling. For widths below one pixel retain a one-pixel sampling footprint and scale coverage by width to avoid vanishing with nearest-filtered textures.
-- [ ] Run the full suite, commit A2, push, and read back remote SHA.
+- [x] Add tests: flat/background -> 0; silhouettes/depth step -> ink; a 10x depth scaling preserves masks; increased threshold suppresses a small jump; wider width expands the edge footprint; a 0.5px width still gives nonzero coverage; uniform-depth image borders remain empty.
+- [x] Run `node tests/run-webgl.mjs a2`; expect boundary tests to fail against the placeholder.
+- [x] Implement Roberts-cross relative-depth detection with explicit foreground/background handling. For widths below one pixel retain a one-pixel sampling footprint and scale coverage by width to avoid vanishing with nearest-filtered textures.
+- [x] Run the full suite, commit A2, push, and read back remote SHA.
 
 ## Task 3: A3 normal edges
 

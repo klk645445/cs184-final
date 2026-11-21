@@ -7,7 +7,7 @@
 <script type="module">
 const results = [];
 try {
-	const suites = { a1: './a1-motion.js' };
+	const suites = { a1: './a1-motion.js', a2: './a2-depth.js' };
 	const selected = new URLSearchParams(location.search).get('suite') || 'all';
 	const names = selected === 'all' ? Object.keys(suites) : [selected];
 	for (const name of names) {

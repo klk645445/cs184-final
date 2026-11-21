@@ -15,12 +15,25 @@ uniform bool uUseHull;
 
 // Part A2: Silhouette lines from discontinuities in depth. Returns line coverage in [0, 1].
 float depthEdge(vec2 uv) {
-	// TODO (Part A2): Compare the depth at uv with its neighbours (for example with a Sobel or
-	// Roberts cross kernel), sampled uLineWidth / 2 pixels away so that the line gets wider with
-	// uLineWidth. Divide the depth difference by the depth at uv, so that the threshold works the
-	// same near and far, and compare it against uDepthThreshold. Treat background pixels as very
-	// far away so that the outline against the background is found.
-	return 0.0;
+	// A2: Two diagonal differences form a Roberts-cross depth gradient.
+	// Keep a one-pixel footprint below 1px; nearest-filtered samples otherwise coincide.
+	vec2 offset = 0.5 * max(uLineWidth, 1.0) * uTexel;
+	vec4 depths = vec4(
+		getDepth(uv + vec2(-offset.x, -offset.y)),
+		getDepth(uv + vec2( offset.x, -offset.y)),
+		getDepth(uv + vec2(-offset.x,  offset.y)),
+		getDepth(uv + vec2( offset.x,  offset.y))
+	);
+	float center = getDepth(uv);
+	float nearest = min(center, min(min(depths.x, depths.y), min(depths.z, depths.w)));
+	float farthest = max(center, max(max(depths.x, depths.y), max(depths.z, depths.w)));
+	float coverage = min(uLineWidth, 1.0);
+	if (farthest <= 0.0) return 0.0;
+	// Background is farther than any geometry, without choosing an arbitrary far depth.
+	if (nearest <= 0.0) return coverage;
+	vec2 gradient = vec2(depths.x - depths.w, depths.y - depths.z);
+	float relativeChange = length(gradient) / center;
+	return coverage * step(uDepthThreshold, relativeChange);
 }
 
 // Part A3: Crease lines from discontinuities in the normal. Returns line coverage in [0, 1].
