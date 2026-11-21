@@ -1,6 +1,6 @@
 # Track A first batch: motion vectors and image-space lines
 
-Status: proposed for Rakesh's review; implementation has not started.
+Status: approved by Rakesh on November 21 for autonomous A1–A3 implementation and a tested push after each part. Derive the algorithms from the math and starter contracts; do not copy implementations from online sources.
 
 ## Intent and scope
 
@@ -13,7 +13,7 @@ The pipeline already stores previous camera and mesh matrices, exposes debug vie
 - **Recommended: existing motion-vector contract plus Roberts-cross edge sampling.** Four corner samples at offsets of half the requested line width give a compact implementation with straightforward synthetic tests. Use relative depth changes and normal dot products with the existing thresholds.
 - **Alternative: Sobel edge sampling.** A larger neighborhood can produce a smoother gradient, but requires more texture reads and kernel-specific threshold tuning. It is unnecessary for a first milestone version; revisit if measured visual quality calls for it.
 
-Roberts cross is the assistant's recommendation, pending approval. Both choices are explicitly permitted by the starter guide.
+Roberts cross is the approved first-batch approach. Both choices are explicitly permitted by the starter guide.
 
 ## Behavior and files
 
@@ -35,7 +35,7 @@ Use executable WebGL checks against the actual shader files, with synthetic geom
 
 A5 reprojection follows early because Ler Koon's C4 metric depends on A1 and A5. A4 inverted-hull outlines and A6 line stability remain separate follow-up tasks. The existing measurement harness cannot prove temporal coherence/stability while A5/A6/C4 remain placeholders.
 
-This batch does not include publishing, pushing, merging, editing another track, writing student report prose, or submitting to Gradescope. If shared JavaScript needs changing, explain the reason first; the team guide asks for group coordination before those changes.
+Commit and push A1, A2, and A3 separately to `track-a-lines` after their checks pass, as Rakesh requested on November 21. This batch does not include merging into main, editing another track, writing student report prose, or submitting to Gradescope. If shared JavaScript needs changing, explain the reason first; the team guide asks for group coordination before those changes.
 
 ## Milestone sources, checked November 20
 
