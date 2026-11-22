@@ -22,19 +22,31 @@ uniform vec3 uPaperColor;
 // paper value in [0, 1] (1 = paper, 0 = ink).
 //   tone: 0 = darkest, 1 = brightest (as returned by diffuseTone)
 float tamSample(vec2 uv, float tone) {
-	// TODO (Part C3): Map the tone onto the 6 TAM levels (a bright tone should use tone 0) and
-	// blend the two nearest levels, as in Praun et al. Section 4. With the levels packed into
-	// channels, this can be done with two dot products of the samples with blend weight vectors.
-	return tone;
+	// x = 0 is blank paper, x = i + 1 is TAM tone i, so the brightest tone fades to plain paper
+	// and the darkest tone uses tone 5
+	float x = (1.0 - clamp(tone, 0.0, 1.0)) * 6.0;
+
+	// Hat-function weights: only the two levels nearest to x are non-zero, and they sum to 1
+	vec3 w0 = max(vec3(0.0), 1.0 - abs(x - vec3(1.0, 2.0, 3.0)));
+	vec3 w1 = max(vec3(0.0), 1.0 - abs(x - vec3(4.0, 5.0, 6.0)));
+	float wPaper = max(0.0, 1.0 - x);
+
+	vec3 s0 = texture(tTAM0, uv).rgb;
+	vec3 s1 = texture(tTAM1, uv).rgb;
+	return wPaper + dot(s0, w0) + dot(s1, w1);
 }
 
 // Part C3: Object-space mapping. Most scanned models have no texture coordinates, so project the
 // object-space position onto the three axis planes and blend the three samples by the normal.
 //   p: object-space position, n: object-space unit normal
 float tamTriplanar(vec3 p, vec3 n, float tone) {
-	// TODO (Part C3): Sample tamSample with p.yz, p.xz and p.xy (scaled by uTAMScale), and blend
-	// the results with weights from abs(n) raised to uTriplanarSharpness and normalized to sum to 1.
-	return tamSample(p.xy * uTAMScale, tone);
+	vec3 w = pow(abs(n), vec3(uTriplanarSharpness));
+	w /= (w.x + w.y + w.z);
+
+	vec3 q = p * uTAMScale;
+	return w.x * tamSample(q.yz, tone)
+	     + w.y * tamSample(q.xz, tone)
+	     + w.z * tamSample(q.xy, tone);
 }
 
 void main() {

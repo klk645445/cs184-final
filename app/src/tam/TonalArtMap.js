@@ -26,6 +26,9 @@ export class TonalArtMap {
 		this.seed = seed;
 		// Target fraction of ink for each tone, light to dark
 		this.targetDarkness = [0.08, 0.2, 0.33, 0.47, 0.62, 0.78];
+		// Stroke width in pixels, the same at every level
+		this.strokeWidth = 1.5;
+		this.strokes = [];
 		this.images = [];
 		this.textures = [null, null];
 		this.clear();
@@ -53,23 +56,63 @@ export class TonalArtMap {
 	generate() {
 		this.clear();
 		const rand = mulberry32(this.seed);
+		this.strokes = [];
 
-		// TODO (Part C2): Build the tonal art map. A simplified version of Praun et al. Section 3:
-		//
-		//   for each tone t, from lightest (0) to darkest (TONES - 1):
-		//     start from a copy of every stroke already in tone t - 1 (nesting in tone)
-		//     for each level, from coarsest (levels - 1) to finest (0):
-		//       while darkness(images[t][level]) < targetDarkness[t]:
-		//         pick a random stroke (position, length, small random angle around the
-		//         hatching direction; cross-hatching direction for the darkest tones)
-		//         draw it into this level and every finer level of tones t ... TONES - 1
-		//         (nesting in resolution and tone)
-		//
-		// Keep a list of the strokes you add, so the copies are easy. Praun et al. also try
-		// several candidate strokes and keep the one that makes the texture the most even.
-		// Use drawStroke() to draw (it wraps around so the texture tiles) and darkness() to
-		// measure the current amount of ink. Use rand() instead of Math.random() so the map is
-		// the same on every run.
+		for (let t = 0; t < TONES; t++) {
+			// Tones 0 to 2 are single hatching, darker tones add strokes in the cross direction.
+			// Strokes already in lighter tones are in images[t] too, because every stroke is drawn
+			// into all darker tones when it is added (nesting in tone).
+			const baseAngle = t < 3 ? 0 : Math.PI / 2;
+
+			for (let level = this.levels - 1; level >= 0; level--) {
+				const canvas = this.images[t][level];
+				let guard = 0;
+				while (this.darkness(canvas) < this.targetDarkness[t] && guard++ < 4000) {
+					const stroke = this.pickStroke(canvas, baseAngle, rand);
+					stroke.tone = t;
+					stroke.level = level;
+					this.strokes.push(stroke);
+					// Nesting in resolution and tone: this level and every finer level, of this
+					// tone and every darker one
+					for (let tt = t; tt < TONES; tt++) {
+						for (let l = level; l >= 0; l--) {
+							this.drawStroke(this.images[tt][l], stroke.u, stroke.v, stroke.length, stroke.angle, this.strokeWidth);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Picks the best of a few random candidate strokes: the one that passes over the least ink in
+	// the current image, which keeps the hatching even (Praun et al. Section 3.2).
+	pickStroke(canvas, baseAngle, rand, candidates = 6) {
+		const s = canvas.width;
+		const data = canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, s, s).data;
+		let best = null;
+		let bestInk = Infinity;
+		for (let c = 0; c < candidates; c++) {
+			const stroke = {
+				u: rand(),
+				v: rand(),
+				length: 0.3 + 0.3 * rand(),
+				angle: baseAngle + (rand() - 0.5) * 0.15,
+			};
+			// Average ink along the stroke, sampled at a few points with wrap-around
+			let ink = 0;
+			const samples = 12;
+			for (let i = 0; i < samples; i++) {
+				const f = i / (samples - 1) - 0.5;
+				const x = Math.floor((((stroke.u + Math.cos(stroke.angle) * stroke.length * f) % 1) + 1) % 1 * s);
+				const y = Math.floor((((stroke.v + Math.sin(stroke.angle) * stroke.length * f) % 1) + 1) % 1 * s);
+				ink += 1 - data[(y * s + x) * 4] / 255;
+			}
+			if (ink < bestInk) {
+				bestInk = ink;
+				best = stroke;
+			}
+		}
+		return best;
 	}
 
 	// Draws one stroke into a canvas, wrapping around the edges so the texture tiles.
