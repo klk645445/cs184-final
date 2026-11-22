@@ -9,11 +9,28 @@ uniform float uLumaWeight;  // 0 = match colors in RGB, 1 = match mostly by brig
 
 // Part D1: Returns the palette color closest to c.
 vec3 nearestPaletteColor(vec3 c) {
-	// TODO (Part D1): Loop over the first uPaletteSize entries of uPalette and return the closest
-	// one. Plain RGB distance works, but matching in a perceptual space (or giving the brightness
-	// difference extra weight with uLumaWeight) gives much better results for shaded objects.
+	float cLuma = luma(c);
+	vec3 best = c;
+	float bestDist = 1e20;
+
 	// GLSL needs a constant loop bound, so loop to 8 and break at uPaletteSize.
-	return c;
+	for (int i = 0; i < 8; i++) {
+		if (i >= uPaletteSize) break;
+		vec3 p = uPalette[i];
+
+		// Two distances, both normalised to "per channel" so the mix is a fair blend.
+		vec3 diff = c - p;
+		float distRGB = dot(diff, diff) / 3.0;
+		float dLuma = luma(p) - cLuma;
+		float distLuma = dLuma * dLuma;
+
+		float dist = mix(distRGB, distLuma, uLumaWeight);
+		if (dist < bestDist) {
+			bestDist = dist;
+			best = p;
+		}
+	}
+	return best;
 }
 
 void main() {

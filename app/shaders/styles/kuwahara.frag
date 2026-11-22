@@ -9,11 +9,45 @@ uniform float uRadius;  // size of each of the four regions, in pixels
 // corner (top-left, top-right, bottom-left, bottom-right), compute the mean color and its
 // variance, and return the mean of the region with the smallest variance.
 vec3 kuwahara(vec2 uv) {
-	// TODO (Part D2): Sample tInput over each region (offsets of uTexel), accumulating the sum and
-	// the sum of squares, so that the variance is E[c^2] - E[c]^2. Compare the regions by the
-	// variance of the luminance (or the sum of the per-channel variances).
-	// GLSL needs constant loop bounds, so loop to a fixed maximum and skip offsets beyond uRadius.
-	return texture(tInput, uv).rgb;
+	const int MAX_R = 12;
+	int r = int(uRadius);
+
+	// The four regions, as the sign of the offset from the center pixel.
+	const vec2 quadrant[4] = vec2[4](
+		vec2(-1.0, -1.0), vec2(1.0, -1.0),
+		vec2(-1.0,  1.0), vec2(1.0,  1.0)
+	);
+
+	vec3 best = texture(tInput, uv).rgb;
+	float bestVariance = 1e20;
+
+	for (int q = 0; q < 4; q++) {
+		vec3 sum = vec3(0.0);
+		vec3 sumSq = vec3(0.0);
+		float n = 0.0;
+
+		for (int y = 0; y <= MAX_R; y++) {
+			if (y > r) break;
+			for (int x = 0; x <= MAX_R; x++) {
+				if (x > r) break;
+				vec2 offset = vec2(float(x), float(y)) * quadrant[q] * uTexel;
+				vec3 c = texture(tInput, uv + offset).rgb;
+				sum += c;
+				sumSq += c * c;
+				n += 1.0;
+			}
+		}
+
+		vec3 m = sum / n;
+		vec3 variance = max(sumSq / n - m * m, vec3(0.0));
+		float score = variance.r + variance.g + variance.b;
+
+		if (score < bestVariance) {
+			bestVariance = score;
+			best = m;
+		}
+	}
+	return best;
 }
 
 void main() {
