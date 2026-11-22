@@ -32,26 +32,42 @@ float paperHeight(vec2 uv) {
 // Part D3: Hand-drawn wobble. Returns the uv to sample the image at, displaced so that edges are
 // slightly irregular, like paint that did not follow the outline exactly.
 vec2 wobble(vec2 uv) {
-	// TODO (Part D3): Offset uv by up to uWobble pixels using the gradient of the paper texture or
-	// a low-frequency noise. Use a fixed pattern (not uTime) so that it does not flicker.
-	return uv;
+	// Match the paper's aspect correction so the noise is isotropic on screen.
+	vec2 aspect = vec2(1.0, uResolution.y / uResolution.x);
+	vec2 p = uv * aspect * uPaperScale * 2.0;
+
+	// Two decorrelated fbm lookups give a smooth 2D displacement field in [-0.5, 0.5].
+	float nx = fbm(p, 3) - 0.5;
+	float ny = fbm(p + vec2(37.2, 11.7), 3) - 0.5;
+
+	return uv + vec2(nx, ny) * 2.0 * uWobble * uTexel;
 }
 
 // Part D3: Edge darkening. Pigment collects at the edges of a wet area, so the color gets darker
 // where it changes. Returns a density in [1, ...).
 float edgeDensity(vec2 uv) {
-	// TODO (Part D3): Measure how much the color changes around uv, for example the difference
-	// between the original (tSurface) and the blurred image (tInput), or a gradient of tInput,
-	// and turn it into a density above 1 scaled by uEdgeDarkening.
-	return 1.0;
+	vec3 sharp = texture(tSurface, uv).rgb;
+	vec3 blurred = texture(tInput, uv).rgb;
+
+	// Difference of Gaussians: ~0 in flat areas, large wherever the image has detail.
+	float edge = length(sharp - blurred);
+
+	return 1.0 + uEdgeDarkening * clamp(edge * 4.0, 0.0, 1.0);
 }
 
 // Part D3: Granulation and turbulence. Pigment settles in the valleys of the paper and varies in
 // large blotches across the page. Returns a density around 1.
 float textureDensity(vec2 uv) {
-	// TODO (Part D3): Combine the paper height (scaled by uGranulation) and a low-frequency fbm
-	// noise (scaled by uTurbulence) into a density around 1.
-	return 1.0;
+	// Paper grain: high frequency, straight from the paper texture.
+	float paper = paperHeight(uv);
+	float granulation = 1.0 + uGranulation * (paper - 0.5) * 2.0;
+
+	// Turbulence: large blotches, so a much lower frequency than the paper.
+	vec2 aspect = vec2(1.0, uResolution.y / uResolution.x);
+	float turb = fbm(uv * aspect * 2.0, 4);
+	float turbulence = 1.0 + uTurbulence * (turb - 0.5) * 2.0;
+
+	return granulation * turbulence;
 }
 
 void main() {

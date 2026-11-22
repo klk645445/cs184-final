@@ -10,14 +10,28 @@ export async function measureFrameTimes(renderer, renderFrame, frames) {
 	const gl = renderer.getContext();
 	const times = [];
 
-	// TODO (Part D4): Time `frames` calls of renderFrame(i). GPU work is asynchronous, so timing
-	// the JavaScript call alone only measures how long it takes to submit the commands. Either:
-	//   - read back one pixel with gl.readPixels after each frame and time with performance.now(),
-	//     which forces the wait for the GPU (gl.finish() does not reliably wait in Chrome), or
-	//   - use the EXT_disjoint_timer_query_webgl2 extension (gl.getExtension) to measure GPU time
-	//     directly; it is not available in every browser, so fall back to the first method.
-	// Render a few warm-up frames first, since the first frames include shader compilation.
-	// Push each frame's time in milliseconds into `times`.
+	const pixel = new Uint8Array(4);
+	const syncWithGPU = () => gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+
+	// Give the browser a turn so a long measurement does not look like a hang.
+	const yieldToBrowser = () => new Promise((resolve) => requestAnimationFrame(resolve));
+
+	// Warm-up. The first frames of a style include shader compilation, texture uploads and render
+	// target allocation, which would otherwise land entirely in frame 0.
+	const WARMUP_FRAMES = 8;
+	for (let i = 0; i < WARMUP_FRAMES; i++) renderFrame(i);
+	syncWithGPU();
+	await yieldToBrowser();
+
+	for (let i = 0; i < frames; i++) {
+		const start = performance.now();
+		renderFrame(i);
+		syncWithGPU();
+		times.push(performance.now() - start);
+
+		// Yield occasionally. Timing is taken around renderFrame + sync only, so this does not enter the measurement.
+		if (i % 15 === 14) await yieldToBrowser();
+	}
 
 	const meanMs = mean(times);
 	return { meanMs, p95Ms: percentile(times, 0.95), fps: 1000 / meanMs };
