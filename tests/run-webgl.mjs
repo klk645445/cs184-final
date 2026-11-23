@@ -44,6 +44,8 @@ try {
 	if (!process.exitCode && process.env.APP_SMOKE === '1') {
 		const { runAppSmoke } = await import('./app-smoke.mjs');
 		await runAppSmoke(browser, base, process.env.TEST_ARTIFACT_DIR);
+		const { runHullSmoke } = await import('./app-hull-smoke.mjs');
+		await runHullSmoke(browser, base, process.env.TEST_ARTIFACT_DIR);
 	}
 } catch (error) {
 	console.error(error.stack || error);
