@@ -13,6 +13,7 @@ export class HatchTAMStyle extends Style {
 			params: {
 				uTAMScale: { value: 2, min: 0.25, max: 10, step: 0.05, label: 'TAM scale' },
 				uTriplanarSharpness: { value: 4, min: 1, max: 16, step: 0.5, label: 'Triplanar sharpness' },
+				uSharpen: { value: 1, min: 0, max: 1, step: 0.05, label: 'Close-up sharpening' },
 				uInkColor: { value: '#1a1a1a', color: true, label: 'Ink' },
 				uPaperColor: { value: '#f4f1ea', color: true, label: 'Paper' },
 			},
