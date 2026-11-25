@@ -17,6 +17,19 @@ uniform float uTAMScale;            // how many times the texture repeats across
 uniform float uTriplanarSharpness;  // higher = sharper transitions between the three projections
 uniform vec3 uInkColor;
 uniform vec3 uPaperColor;
+uniform float uSharpen;             // 0 = plain magnification, 1 = keep strokes crisp up close
+
+// Close-ups: once the camera is past the finest TAM level, the GPU magnifies the texture and the
+// antialiased stroke edges get spread over several pixels, so strokes look soft and grey. This
+// raises the contrast around 0.5 by the magnification (screen pixels per texel), which brings the
+// edges back to about one pixel wide. It does nothing while the texture is minified.
+vec3 sharpenStrokes(vec3 paper, vec2 uv) {
+	vec2 texels = uv * vec2(textureSize(tTAM0, 0));
+	float texelsPerPixel = max(length(dFdx(texels)), length(dFdy(texels)));
+	float magnification = clamp(1.0 / max(texelsPerPixel, 1e-4), 1.0, 8.0);
+	float contrast = mix(1.0, magnification, uSharpen);
+	return clamp((paper - 0.5) * contrast + 0.5, 0.0, 1.0);
+}
 
 // Part C3: Samples the tonal art map at texture coordinate uv for a given tone and returns the
 // paper value in [0, 1] (1 = paper, 0 = ink).
@@ -31,8 +44,8 @@ float tamSample(vec2 uv, float tone) {
 	vec3 w1 = max(vec3(0.0), 1.0 - abs(x - vec3(4.0, 5.0, 6.0)));
 	float wPaper = max(0.0, 1.0 - x);
 
-	vec3 s0 = texture(tTAM0, uv).rgb;
-	vec3 s1 = texture(tTAM1, uv).rgb;
+	vec3 s0 = sharpenStrokes(texture(tTAM0, uv).rgb, uv);
+	vec3 s1 = sharpenStrokes(texture(tTAM1, uv).rgb, uv);
 	return wPaper + dot(s0, w0) + dot(s1, w1);
 }
 

@@ -11,9 +11,24 @@ import { lumaAt } from './image.js';
 //   prev, cur: captured frames (see Pipeline.capture())
 //   warped:    the result of warpPrevious(prev, cur)
 // Returns the mean absolute luminance difference over stroke pixels, or NaN if there are none.
-export function coherence(prev, cur, warped) {
-	// TODO (Part C4): Over the valid pixels, find the stroke pixels: pixels that are darker than a
-	// threshold (ink) in either cur.color or warped.color. Use lumaAt() for the luminance.
-	// Average |luma(cur) - luma(warped)| over those pixels and return it.
-	return NaN;
+//
+// Stroke pixels are those with linear luminance below `inkThreshold` in either frame, so a stroke
+// that slid away from a pixel (ink before, paper now) counts as much as one that slid onto it.
+// The default of 0.5 linear (about 0.73 in sRGB) sits between the paper and the ink of the
+// hatching styles. Only pixels accepted by the A5 warp take part.
+export const INK_THRESHOLD = 0.5;
+
+export function coherence(prev, cur, warped, inkThreshold = INK_THRESHOLD) {
+	let strokes = 0;
+	let sum = 0;
+	for (let i = 0; i < cur.width * cur.height; i++) {
+		if (!warped.valid[i]) continue;
+		const current = lumaAt(cur.color, i);
+		const previous = lumaAt(warped.color, i);
+		if (current < inkThreshold || previous < inkThreshold) {
+			strokes++;
+			sum += Math.abs(current - previous);
+		}
+	}
+	return strokes ? sum / strokes : NaN;
 }

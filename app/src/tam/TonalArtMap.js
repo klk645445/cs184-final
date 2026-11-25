@@ -4,7 +4,9 @@ import { mulberry32 } from '../core/textures.js';
 // Tonal art map (Track C), after Praun et al., "Real-Time Hatching", SIGGRAPH 2001.
 //
 // A tonal art map is a set of hatching textures: TONES tones (light to dark) at LEVELS resolutions
-// (mip levels, 256 x 256 down to 32 x 32 by default). Two rules make it work in real time:
+// (mip levels, 1024 x 1024 down to 32 x 32 by default). The two finest levels are there for
+// close-ups: without them the GPU has to magnify the 256 x 256 level and the strokes go soft and
+// wide. Two rules make it work in real time:
 //
 //   nesting in tone:        every stroke in a tone also appears in all darker tones, so blending
 //                           between neighbouring tones never makes strokes pop in or out.
@@ -20,7 +22,7 @@ import { mulberry32 } from '../core/textures.js';
 export const TONES = 6;
 
 export class TonalArtMap {
-	constructor({ size = 256, levels = 4, seed = 1 } = {}) {
+	constructor({ size = 1024, levels = 6, seed = 1 } = {}) {
 		this.size = size;
 		this.levels = levels;
 		this.seed = seed;
@@ -66,17 +68,31 @@ export class TonalArtMap {
 
 			for (let level = this.levels - 1; level >= 0; level--) {
 				const canvas = this.images[t][level];
+				const s = canvas.width;
+				// Reading a large canvas back is the slow part, so strokes are added in batches.
+				// Each batch covers about half of the remaining ink, estimated from the average
+				// stroke size (length 0.45 of the tile, strokeWidth pixels wide), and the darkness
+				// is only measured again between batches.
+				const inkPerStroke = (0.45 * s * this.strokeWidth) / (s * s);
 				let guard = 0;
-				while (this.darkness(canvas) < this.targetDarkness[t] && guard++ < 4000) {
-					const stroke = this.pickStroke(canvas, baseAngle, rand);
-					stroke.tone = t;
-					stroke.level = level;
-					this.strokes.push(stroke);
-					// Nesting in resolution and tone: this level and every finer level, of this
-					// tone and every darker one
-					for (let tt = t; tt < TONES; tt++) {
-						for (let l = level; l >= 0; l--) {
-							this.drawStroke(this.images[tt][l], stroke.u, stroke.v, stroke.length, stroke.angle, this.strokeWidth);
+				for (;;) {
+					const data = this.pixels(canvas);
+					const deficit = this.targetDarkness[t] - this.darkness(canvas, data);
+					if (deficit <= 0 || guard >= 4000) break;
+					const batch = Math.max(1, Math.floor((0.5 * deficit) / inkPerStroke));
+					for (let b = 0; b < batch && guard < 4000; b++, guard++) {
+						const stroke = this.pickStroke(canvas, baseAngle, rand, 6, data);
+						stroke.tone = t;
+						stroke.level = level;
+						this.strokes.push(stroke);
+						// Let the next candidates in this batch see the new stroke, so they avoid it
+						this.markStroke(data, s, stroke);
+						// Nesting in resolution and tone: this level and every finer level, of this
+						// tone and every darker one
+						for (let tt = t; tt < TONES; tt++) {
+							for (let l = level; l >= 0; l--) {
+								this.drawStroke(this.images[tt][l], stroke.u, stroke.v, stroke.length, stroke.angle, this.strokeWidth);
+							}
 						}
 					}
 				}
@@ -86,9 +102,9 @@ export class TonalArtMap {
 
 	// Picks the best of a few random candidate strokes: the one that passes over the least ink in
 	// the current image, which keeps the hatching even (Praun et al. Section 3.2).
-	pickStroke(canvas, baseAngle, rand, candidates = 6) {
+	//   data: optional pixels of the canvas (see pixels()), to avoid reading it back again
+	pickStroke(canvas, baseAngle, rand, candidates = 6, data = this.pixels(canvas)) {
 		const s = canvas.width;
-		const data = canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, s, s).data;
 		let best = null;
 		let bestInk = Infinity;
 		for (let c = 0; c < candidates; c++) {
@@ -140,10 +156,28 @@ export class TonalArtMap {
 		}
 	}
 
-	// Fraction of the canvas covered by ink, in [0, 1].
-	darkness(canvas) {
+	// The RGBA pixels of a canvas.
+	pixels(canvas) {
 		const s = canvas.width;
-		const data = canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, s, s).data;
+		return canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, s, s).data;
+	}
+
+	// Marks the centre line of a stroke as ink in a pixel copy, so that pickStroke() can avoid it
+	// before the canvas is read back again. Only the copy changes, not the canvas.
+	markStroke(data, s, stroke) {
+		const steps = Math.ceil(stroke.length * s);
+		for (let i = 0; i <= steps; i++) {
+			const f = i / steps - 0.5;
+			const x = Math.floor((((stroke.u + Math.cos(stroke.angle) * stroke.length * f) % 1) + 1) % 1 * s);
+			const y = Math.floor((((stroke.v + Math.sin(stroke.angle) * stroke.length * f) % 1) + 1) % 1 * s);
+			data[(y * s + x) * 4] = 0;
+		}
+	}
+
+	// Fraction of the canvas covered by ink, in [0, 1].
+	//   data: optional pixels of the canvas (see pixels())
+	darkness(canvas, data = this.pixels(canvas)) {
+		const s = canvas.width;
 		let ink = 0;
 		for (let i = 0; i < data.length; i += 4) ink += 1 - data[i] / 255;
 		return ink / (s * s);
