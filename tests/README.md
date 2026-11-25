@@ -14,7 +14,7 @@ APP_SMOKE=1 node tests/run-webgl.mjs # also exercise Bunny/Still life in the rea
 APP_SMOKE=a5 node tests/run-webgl.mjs # focus real-app checks on A5
 APP_SMOKE=a6 node tests/run-webgl.mjs # focus real-app checks on A6
 node --test tests/a5-warp.test.mjs  # A5 production JavaScript, no browser needed (Node 22+)
-node --test tests/a5-warp.test.mjs tests/a6-line-stability.test.mjs # all CPU metric tests
+node --test tests/a5-warp.test.mjs tests/a6-line-stability.test.mjs tests/c4-coherence.test.mjs # all CPU metric tests
 ```
 
 If Playwright is installed elsewhere, set `PLAYWRIGHT_MODULE` to the absolute path of its `index.mjs`. `BROWSER_CHANNEL` optionally selects another installed Playwright browser channel. The default is headless Chrome, with a fresh temporary test profile and SwiftShader; your normal browser session is not used. The runner serves this checkout on a temporary loopback port and closes both browser and server afterwards. There is no app build step or new runtime dependency.
@@ -50,3 +50,11 @@ CSV values (first frame blank, later Static frames/summary zero). This is a shor
 correctness check, not the final full-path report experiment or temporal stabilization.
 The metric inherits A5's depth-gate and background-exclusion limitations; no conclusion
 that pure hull outlines are stable can be drawn from an empty eligible union.
+
+## C4 temporal coherence
+
+`tests/c4-coherence.test.mjs` checks the production `coherence()` with hand-made grey frames:
+zero for identical frames, a moved stroke counted where it left and where it arrived, paper-only
+pixels kept out of the average, A5-invalid pixels excluded, the strict ink threshold applied to
+either frame, NaN when there are no stroke pixels, Rec. 709 luminance weights, and zero for a
+static frame passed through the real `warpPrevious()`.
