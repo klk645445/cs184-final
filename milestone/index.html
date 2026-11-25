@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>Inkwell Milestone Report</title>
+		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+		<style>
+			body {
+				font-family: 'Inter', sans-serif;
+				background: #fff;
+				color: #111;
+				line-height: 1.5;
+			}
+
+			.container {
+				margin: 0 auto;
+				padding: 60px 20%;
+			}
+
+			h1 {
+				text-align: center;
+				margin-bottom: 4px;
+			}
+
+			.subtitle {
+				text-align: center;
+				color: #555;
+			}
+
+			table {
+				width: 100%;
+				border-collapse: collapse;
+			}
+
+			th, td {
+				border: 1px solid #ccc;
+				padding: 6px 10px;
+				text-align: left;
+				vertical-align: top;
+			}
+
+			th {
+				background: #f3f3f3;
+			}
+
+			.grid {
+				display: grid;
+				gap: 10px;
+				margin: 12px 0;
+			}
+
+			.grid.four {
+				grid-template-columns: repeat(4, 1fr);
+			}
+
+			.grid.three {
+				grid-template-columns: repeat(3, 1fr);
+			}
+
+			figure {
+				margin: 0;
+				break-inside: avoid;
+			}
+
+			figure img {
+				width: 100%;
+				display: block;
+				border: 1px solid #ddd;
+			}
+
+			figcaption {
+				font-size: 0.8em;
+				color: #555;
+				margin-top: 3px;
+			}
+
+			.todo {
+				background: #fff3a0;
+			}
+
+			@media screen and (max-width: 800px) {
+				.container {
+					padding: 30px 16px;
+				}
+
+				.grid.four, .grid.three {
+					grid-template-columns: repeat(2, 1fr);
+				}
+			}
+
+			@media print {
+				body {
+					font-size: 9.5pt;
+					line-height: 1.35;
+				}
+
+				.container {
+					padding: 0;
+				}
+
+				h2 {
+					font-size: 13pt;
+					margin: 10px 0 4px;
+				}
+
+				p, ul {
+					margin: 4px 0;
+				}
+
+				.grid {
+					gap: 6px;
+					margin: 6px 0;
+				}
+
+				th, td {
+					padding: 3px 8px;
+				}
+
+				td ul {
+					margin: 0;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+		<h1>Inkwell</h1>
+		<div class="subtitle">Real-Time Stylized Rendering with Temporally Coherent Strokes</div>
+		<div class="subtitle">CS184/284A Fall 2026 Final Project Milestone Report</div>
+
+		<br>
+
+		Team members: Kway Ler Koon, Alex Siek Min Ping, Lena Mohammed Alabdulwahab, Rakesh Mehta
+		<br>
+		Milestone webpage: <a href="https://klk645445.github.io/cs184-final/milestone/">klk645445.github.io/cs184-final/milestone</a>
+		<br>
+		Slides: <a href="https://canva.link/smwuqj3ne2t8qk7">canva.link/smwuqj3ne2t8qk7</a>
+		<br>
+		Video: <a href="https://youtu.be/E7zid53MShE">youtu.be/E7zid53MShE</a>
+		<br>
+		Live demo: <a href="https://klk645445.github.io/cs184-final/app/">klk645445.github.io/cs184-final/app</a>
+		<br>
+		Proposal: <a href="https://klk645445.github.io/cs184-final/">klk645445.github.io/cs184-final</a>
+
+		<h2>What we have accomplished</h2>
+		<p>
+		We have a working real-time renderer in the browser, written with three.js and our own GLSL shaders. Every style is
+		built on one shared pipeline. A G-buffer pass writes normals, depth, albedo, lighting terms, mesh UVs and screen-space
+		motion vectors into four render targets at once, each style then shades the surface and runs its own image-space
+		passes, and a line pass draws ink lines on top of any style. The demo can load the homework meshes or any dropped
+		model file, orbit the camera, move the light, switch styles and debug views live, and play back fixed camera paths
+		that we will use for measurement.
+		</p>
+		<ul>
+		<li><b>Lines and pipeline (Rakesh).</b> Motion vectors in the G-buffer, silhouette lines from depth discontinuities
+			and crease lines from normal discontinuities, both with a Roberts cross kernel and adjustable width and
+			thresholds. Lines are also drawn where two different objects touch. These parts have automated WebGL tests that
+			compile the real shaders and check the pixels they produce.</li>
+		<li><b>Toon shading (Lena).</b> Lighting quantized into flat bands, color ramps sampled at the center of each band,
+			a hard-edged rim light on the lit side, and a thresholded Blinn-Phong highlight.</li>
+		<li><b>Hatching (Ler Koon).</b> Screen-space hatching with up to four antialiased layers that fade in as the surface
+			gets darker. A tonal art map generator after Praun et al. that places strokes so that every tone contains the
+			strokes of the lighter tones and every mip level contains the strokes of the coarser levels. Object-space
+			hatching that blends the two nearest tones and maps the strokes onto the model with triplanar projection.</li>
+		<li><b>Painterly styles (Alex).</b> Posterization to a fixed palette that matches colors by a mix of RGB and
+			brightness distance, and a Kuwahara filter that keeps the mean color of the least varied of four regions.</li>
+		</ul>
+
+		<h2>Preliminary results</h2>
+		<div class="grid four">
+			<figure><img src="images/toon.png" alt="Toon shaded bunny with ink lines"><figcaption>Toon shading with depth and normal lines</figcaption></figure>
+			<figure><img src="images/posterize.png" alt="Posterized Max Planck bust"><figcaption>Posterization with lines</figcaption></figure>
+			<figure><img src="images/kuwahara.png" alt="Kuwahara filtered Max Planck bust"><figcaption>Kuwahara filter</figcaption></figure>
+			<figure><img src="images/normal_lines.png" alt="Dragon with depth and normal lines"><figcaption>Depth and normal lines on the dragon</figcaption></figure>
+			<figure><img src="images/hatch_screen.png" alt="Bunny with screen-space hatching"><figcaption>Screen-space hatching</figcaption></figure>
+			<figure><img src="images/hatch_tam.png" alt="Bunny with object-space hatching"><figcaption>Object-space hatching with the tonal art map</figcaption></figure>
+			<figure><img src="images/motion.png" alt="Motion vector debug view"><figcaption>Motion vectors while the model rotates</figcaption></figure>
+			<figure><img src="images/line_mask.png" alt="Line mask debug view"><figcaption>Line mask for the dragon</figcaption></figure>
+		</div>
+		<div class="grid four">
+			<figure style="grid-column: span 2"><img src="images/tam_view.png" alt="Tonal art map debug view"><figcaption>Our tonal art map, six tones from light to dark. The top half is the full-resolution texture and the bottom half is the GPU sampling it at a smaller mip level.</figcaption></figure>
+		</div>
+		<p>
+		The comparison below shows why we need object-space hatching. Screen-space lines are fixed to the screen, so the
+		surface slides underneath them as the model moves, and the pattern keeps the same spacing no matter how far away the
+		model is. The tonal art map strokes are attached to the surface and keep roughly the same width at a distance
+		because the GPU switches to coarser mip levels that were drawn with the same stroke width. Up close the strokes
+		become blurry, because the camera has passed the finest 256 by 256 level of the map. We plan to fix this with a
+		finer level and by drawing more strokes per tile.
+		</p>
+		<div class="grid four">
+			<figure><img src="images/screen_near.png" alt="Screen-space hatching up close"><figcaption>Screen space, close</figcaption></figure>
+			<figure><img src="images/screen_far.png" alt="Screen-space hatching far away"><figcaption>Screen space, 2.5 times further, enlarged</figcaption></figure>
+			<figure><img src="images/tam_near.png" alt="Object-space hatching up close"><figcaption>Object space, close</figcaption></figure>
+			<figure><img src="images/tam_far.png" alt="Object-space hatching far away"><figcaption>Object space, 2.5 times further, enlarged</figcaption></figure>
+		</div>
+
+		<h2>Progress relative to our plan</h2>
+		<p>
+		We finished everything planned for week 1. The G-buffer with motion vectors, the first version of every style family
+		and the interface for switching styles all work. Object-space hatching was planned to be early work at the milestone
+		and already runs on all of our test models, so the hatching track is slightly ahead. Combining any style with the
+		line pass also works. We are behind on three week 2 items, the inverted-hull outline, halftone dots and the basic
+		watercolor effect, which we will finish in the rest of this week. None of the measurements have been run yet, since
+		the temporal coherence and line stability metrics need the reprojection step that warps one frame into the next.
+		</p>
+
+		<h2>Updated work plan</h2>
+		<table>
+			<tr>
+				<th>Week</th>
+				<th>Tasks</th>
+			</tr>
+			<tr>
+				<td>Nov 22 to Nov 26</td>
+				<td>
+					<ul>
+					<li>Inverted-hull outlines and the frame reprojection used by all temporal metrics (Rakesh).</li>
+					<li>Halftone dots (Lena).</li>
+					<li>A finer tonal art map level for close-ups and tuning of stroke density (Ler Koon).</li>
+					<li>Basic watercolor with paper texture and darkened edges (Alex).</li>
+					<li>Merge every track into the main branch so the live demo has all styles.</li>
+					</ul>
+				</td>
+			</tr>
+			<tr>
+				<td>Nov 27 to Dec 3</td>
+				<td>
+					<ul>
+					<li>Implement the four metrics, line stability (Rakesh), stroke scale (Lena), temporal coherence (Ler Koon)
+						and performance (Alex).</li>
+					<li>Collect numbers on the fixed camera paths at 1920×1080 and compare screen-space and object-space
+						hatching.</li>
+					<li>Fix problems found by the measurements and start on the aspirational goals, keeping in mind Homework 4
+						and Exam 2 this week.</li>
+					</ul>
+				</td>
+			</tr>
+			<tr>
+				<td>Dec 4 to Dec 8</td>
+				<td>
+					<ul>
+					<li>Render the final images and the short film, and finish the comparisons.</li>
+					<li>Write the final report and record the video, due Sunday, December 6.</li>
+					<li>Prepare the presentation and demo for December 7 and 8.</li>
+					</ul>
+				</td>
+			</tr>
+		</table>
+		</div>
+	</body>
+</html>

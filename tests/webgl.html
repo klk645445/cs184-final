@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Inkwell shader checks</title>
+<link rel="icon" href="data:,">
+<pre id="results">Running actual WebGL2 shaders…</pre>
+<script type="module">
+const results = [];
+try {
+	const suites = { a1: './a1-motion.js', a2: './a2-depth.js', a3: './a3-normal.js', a4: './a4-hull.js' };
+	const selected = new URLSearchParams(location.search).get('suite') || 'all';
+	const names = selected === 'all' ? Object.keys(suites) : [selected];
+	for (const name of names) {
+		if (!suites[name]) throw new Error(`Unknown suite: ${name}`);
+		const { tests } = await import(suites[name]);
+		for (const [name, test] of tests) {
+			try { await test(); results.push({ name, ok: true }); }
+			catch (error) { results.push({ name, ok: false, error: error.stack || String(error) }); }
+		}
+	}
+} catch (error) {
+	results.push({ name: 'Test harness', ok: false, error: error.stack || String(error) });
+}
+document.getElementById('results').textContent = JSON.stringify(results, null, 2);
+window.testResults = results;
+</script>
+</html>

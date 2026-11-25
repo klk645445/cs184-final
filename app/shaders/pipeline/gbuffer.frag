@@ -33,10 +33,16 @@ void main() {
 	gAlbedo = vec4(uAlbedo, uObjectId / 255.0);
 	gLight = vec4(dot(N, L), max(dot(N, H), 0.0), max(dot(N, V), 0.0), 1.0);
 
-	// TODO (Part A1): Compute the screen-space motion of this fragment, in uv units, from the
-	// current and previous clip-space positions. Remember the perspective divide, and that uv
-	// is in [0, 1] while normalized device coordinates are in [-1, 1].
+	// A1: NDC spans [-1, 1], so half its displacement is displacement in texture UVs.
+	// A point on/behind the previous camera plane has no usable previous projection.
 	vec2 motion = vec2(0.0);
+	if (vCurClip.w > 0.000001 && vPrevClip.w > 0.000001) {
+		vec2 currentNdc = vCurClip.xy / vCurClip.w;
+		vec2 previousNdc = vPrevClip.xy / vPrevClip.w;
+		vec2 displacement = 0.5 * (currentNdc - previousNdc);
+		// The G-buffer is half float: reject unusable history instead of storing Inf/NaN.
+		if (all(lessThanEqual(abs(displacement), vec2(65504.0)))) motion = displacement;
+	}
 
 	gMotion = vec4(motion, vUv);
 }
