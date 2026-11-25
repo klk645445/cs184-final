@@ -41,15 +41,21 @@ try {
 	for (const error of pageErrors) console.error(error);
 	console.log(`${results.length - results.filter((result) => !result.ok).length}/${results.length} shader checks passed`);
 	if (failed || !results.length) process.exitCode = 1;
-	if (!process.exitCode && ['1', 'a5'].includes(process.env.APP_SMOKE)) {
+	if (!process.exitCode && ['1', 'a5', 'a6'].includes(process.env.APP_SMOKE)) {
 		if (process.env.APP_SMOKE === '1') {
 			const { runAppSmoke } = await import('./app-smoke.mjs');
 			await runAppSmoke(browser, base, process.env.TEST_ARTIFACT_DIR);
 			const { runHullSmoke } = await import('./app-hull-smoke.mjs');
 			await runHullSmoke(browser, base, process.env.TEST_ARTIFACT_DIR);
 		}
-		const { runWarpSmoke } = await import('./app-warp-smoke.mjs');
-		await runWarpSmoke(browser, base, process.env.TEST_ARTIFACT_DIR);
+		if (process.env.APP_SMOKE !== 'a6') {
+			const { runWarpSmoke } = await import('./app-warp-smoke.mjs');
+			await runWarpSmoke(browser, base, process.env.TEST_ARTIFACT_DIR);
+		}
+		if (process.env.APP_SMOKE !== 'a5') {
+			const { runStabilitySmoke } = await import('./app-stability-smoke.mjs');
+			await runStabilitySmoke(browser, base, process.env.TEST_ARTIFACT_DIR);
+		}
 	}
 } catch (error) {
 	console.error(error.stack || error);
